@@ -51,8 +51,8 @@ class ICUProjection(object):
         icu_filter_len = self.infection_icu_lag_filter.shape[0]
         filter_length = gen_filter_len + icu_filter_len
         flipped_infection_generation_filter = self.infection_generation_filter[::-1]
-        infections = np.ones(filter_length + self.detection_to_change_lag)
-        for i in range(gen_filter_len):
+        infections = np.ones(filter_length)
+        for i in range(gen_filter_len + self.detection_to_change_lag):
             infections = np.append(infections, self.transmission_rate * infections[-gen_filter_len:].dot(flipped_infection_generation_filter))
         lockdown_point = infections.shape[0] - self.detection_to_change_lag
         for i in range(icu_filter_len):
@@ -89,6 +89,8 @@ def test():
     plt.xlabel("Worst Case R(t)")
     plt.ylabel("ICU Admissions / day (per 250 ICU beds)")
     plt.title("Worst Case R(t) vs Allowable ICU Admissions per Day")
+    plt.plot([1.5], [icu_admissions_per_day[3]], 'sk')
+    plt.text(1.5 + 0.02, icu_admissions_per_day[3], "{:.1f}".format(icu_admissions_per_day[3]), verticalalignment='bottom', horizontalalignment='left')
     plt.plot([1.6], [icu_admissions_per_day[4]], 'sk')
     plt.text(1.6 + 0.02, icu_admissions_per_day[4], "{:.1f}".format(icu_admissions_per_day[4]), verticalalignment='bottom', horizontalalignment='left')
     plt.plot([1.8], [icu_admissions_per_day[6]], 'sk')
