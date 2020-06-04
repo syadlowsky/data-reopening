@@ -1,10 +1,9 @@
 import numpy as np
 import warnings
-import sys
 
 from utils import GrowthRateConversion, LoSFilter
 
-class ICUProjection(object):
+class HospBedDemandProjection(object):
     def __init__(self,
                  initial_daily_infection_rate = 1.0,
                  infection_generation_filter = None,
@@ -12,7 +11,7 @@ class ICUProjection(object):
                  lockdown_transmission_rate=0.85,
                  detection_to_change_lag = 2,
                  infection_icu_lag_filter = None,
-                 admission_probability = 0.02,
+                 admission_probability = 0.05,
                  los_filter = None,
                  icu = True,
                  icu_hospitalization_fraction = 0.15):
@@ -30,12 +29,16 @@ class ICUProjection(object):
         self.detection_to_change_lag = detection_to_change_lag
 
         self._set_infection_icu_lag_filter_with_default(infection_icu_lag_filter)
-        self.admission_probability = admission_probability
-        self.icu_hospitalization_fraction = icu_hospitalization_fraction
 
         # Assume limitinig factor is ICU (alternative is hospitaliizations)
         self.icu = icu
         self._set_los_filter_with_default(los_filter)
+
+        if icu:
+            self.admission_probability = icu_hospitalization_fraction * admission_probability
+        else:
+            self.admission_probability = admission_probability
+        self.icu_hospitalization_fraction = icu_hospitalization_fraction
 
     def _set_los_filter_with_default(self, los_filter=None):
         if los_filter is None:
@@ -109,7 +112,7 @@ class ICUProjection(object):
 
 def test():
     import matplotlib.pyplot as plt
-    projection = ICUProjection()
+    projection = HospBedDemandProjection()
     #print(projection._simulate())
 
     max_growth_list = np.arange(0.03, 0.15, 0.01)
@@ -123,7 +126,7 @@ def test():
 
     hospital_admissions_threshold = []
     for max_R_t in max_R_t_list:
-        projection = ICUProjection(transmission_rate = max_R_t, icu=False)
+        projection = HospBedDemandProjection(transmission_rate = max_R_t, icu=True)
         hospital_admissions_threshold.append(projection.estimate_runway_threshold(250)['hospital_admissions_threshold'])
 
     plt.plot(max_growth_list, hospital_admissions_threshold)
@@ -148,7 +151,7 @@ def test():
 
     hospital_admissions_threshold = []
     for max_R_t in max_R_t_list:
-        projection = ICUProjection(transmission_rate = max_R_t)
+        projection = HospBedDemandProjection(transmission_rate = max_R_t)
         hospital_admissions_threshold.append(projection.estimate_runway_threshold(250)['hospital_admissions_threshold'])
 
     plt.plot(max_R_t_list, hospital_admissions_threshold)
