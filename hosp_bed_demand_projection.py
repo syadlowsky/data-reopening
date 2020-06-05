@@ -92,7 +92,7 @@ class HospBedDemandProjection(object):
         icu_demand = self.los_filter.apply_filter(new_icu_intensity_at_day)
         return np.max(icu_demand) / np.mean(new_icu_intensity_at_day[lockdown_point - 3:lockdown_point])
 
-    def estimate_runway_threshold(self, capacity_max, z_alpha = 1.64, days_to_avg = 3.0):
+    def estimate_runway_threshold(self, capacity_max, z_alpha = 1.64, days_to_avg = 3.0, alpha=0.05):
         if capacity_max > 20:
             capacity = 0.5 * (2*capacity_max + z_alpha**2 - np.sqrt(4*capacity_max*(z_alpha**2) + z_alpha**4))
         else:
@@ -106,8 +106,8 @@ class HospBedDemandProjection(object):
         else:
             hosp_adm_rate = float(capacity) / self._estimate_max_capacity_multiplier()
             icu_adm_rate = hosp_adm_rate * self.icu_hospitalization_fraction
-        icu_adm_threshold = scipy.stats.poisson.ppf(0.95, icu_adm_rate * days_to_avg) / days_to_avg
-        hosp_adm_threshold = scipy.stats.poisson.ppf(0.95, hosp_adm_rate * days_to_avg) / days_to_avg
+        icu_adm_threshold = scipy.stats.poisson.ppf(alpha, icu_adm_rate * days_to_avg) / days_to_avg
+        hosp_adm_threshold = scipy.stats.poisson.ppf(alpha, hosp_adm_rate * days_to_avg) / days_to_avg
         return {
             'icu_admissions_rate' : icu_adm_rate,
             'hospital_admissions_rate' : hosp_adm_rate,
