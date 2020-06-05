@@ -110,8 +110,8 @@ class HospBedDemandProjection(object):
             icu_adm_rate = hosp_adm_rate * self.icu_hospitalization_fraction
 
         # need to pick threshold such that we will exceed the threshold w.h.p. assuming the rate is too high
-        icu_adm_threshold = scipy.stats.poisson.ppf(1-alpha, icu_adm_rate * days_to_avg) / days_to_avg
-        hosp_adm_threshold = scipy.stats.poisson.ppf(1-alpha, hosp_adm_rate * days_to_avg) / days_to_avg
+        icu_adm_threshold = scipy.stats.poisson.ppf(alpha, icu_adm_rate * days_to_avg) / days_to_avg
+        hosp_adm_threshold = scipy.stats.poisson.ppf(alpha, hosp_adm_rate * days_to_avg) / days_to_avg
         return {
             'icu_admissions_rate' : icu_adm_rate,
             'hospital_admissions_rate' : hosp_adm_rate,
