@@ -61,6 +61,32 @@ class GrowthRateConversion(object):
     def R0_ez(self, r_discrete):
       return self.get_R0(self.get_r(r_discrete), .001)
 
+class HospitalizationFilter(object):
+    def __init__(self):
+        self.filter = self._pdf()
+
+    def _pdf(self):
+        # From IQR reported here: https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(20)30528-6/fulltext
+        k = 1.5
+        lam = 7
+        symp_to_hosp = np.diff(scipy.stats.weibull_min.cdf(np.arange(-1, 25), c=k, scale=lam))
+        # From appendix here: https://www.acpjournals.org/doi/10.7326/M20-0504
+        mu = 1.621
+        sigma = 0.418
+        scale = np.exp(mu)
+        incubation = np.diff(scipy.stats.lognorm.cdf(np.arange(-1, 30), s=sigma, scale=scale))
+        # assume they're independent and apply convolution
+        pdf = np.convolve(incubation, symp_to_hosp, mode="full")
+        return pdf
+
+    def apply_filter(self, sequence):
+        filter_len = len(self.filter)
+        output = np.zeros(len(sequence))
+        for i in range(filter_len):
+            output[i] = sequence[0:len(self.filter)].dot(self.filter)
+        for i in range(filter_len, len(output)):
+            output[i] = sequence[(i-len(self.filter)):i].dot(self.filter)
+        return output
 
 class LoSFilter(object):
     def __init__(self, filename="los_trunc.csv"):

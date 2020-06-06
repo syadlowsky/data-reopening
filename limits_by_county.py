@@ -19,12 +19,13 @@ def main():
 
     county_thresholds = []
     for county in hospital_capacity.index.get_level_values('COUNTY_NAME').unique():
+        print(county)
         icu = hospital_capacity.index.isin([(county, 'INTENSIVE CARE')]).any()
         if icu:
             # The 0.25 avoids weird rounding issues at 0.5
             icu_capacity = np.around(hospital_capacity.at[(county, 'INTENSIVE CARE'), 'BED_CAPACITY'] / 2 + 0.25)
             projection = HospBedDemandProjection(transmission_rate = Rt, icu=True)
-            icu_thresholds = projection.estimate_runway_threshold(icu_capacity, z_alpha = z_alpha_div_2, alpha=alpha / 2)
+            icu_thresholds = projection.estimate_runway_threshold(icu_capacity, alpha=alpha / 2)
             threshold_for_icu = icu_thresholds['hospital_admissions_threshold']
         else:
             icu_capacity = np.nan

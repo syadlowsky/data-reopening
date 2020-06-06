@@ -1,8 +1,9 @@
 import numpy as np
 import warnings
 import scipy.stats
+import matplotlib.pyplot as plt
 
-from utils import GrowthRateConversion, LoSFilter
+from utils import GrowthRateConversion, LoSFilter, HospitalizationFilter
 
 class HospBedDemandProjection(object):
     def __init__(self,
@@ -68,7 +69,7 @@ class HospBedDemandProjection(object):
         self.infection_icu_lag_filter = infection_icu_lag_filter
 
     def _default_infection_icu_lag_filter(self):
-        return np.concatenate((np.zeros(5), np.ones(19) / 19.0))
+        return HospitalizationFilter().filter
 
     def _simulate(self):
         gen_filter_len = self.infection_generation_filter.shape[0]
@@ -76,16 +77,54 @@ class HospBedDemandProjection(object):
         filter_length = gen_filter_len + icu_filter_len
         flipped_infection_generation_filter = self.infection_generation_filter[::-1]
         infections = np.ones(filter_length)
-        for i in range(gen_filter_len + self.detection_to_change_lag):
+        for i in range(gen_filter_len + self.detection_to_change_lag + 100):
             infections = np.append(infections, self.transmission_rate * infections[-gen_filter_len:].dot(flipped_infection_generation_filter))
         lockdown_point = infections.shape[0] - self.detection_to_change_lag
-        for i in range(icu_filter_len + 29):
+        for i in range(icu_filter_len + 40):
             infections = np.append(infections, self.lockdown_transmission_rate * infections[-gen_filter_len:].dot(flipped_infection_generation_filter))
         icu_intensity = self.admission_probability * np.ones(icu_filter_len)
         flipped_icu_filter = self.infection_icu_lag_filter[::-1]
         for i in range(infections.shape[0] - icu_filter_len):
            icu_intensity = np.append(icu_intensity, self.admission_probability * infections[i:i+icu_filter_len].dot(flipped_icu_filter))
         return infections, icu_intensity, lockdown_point
+
+    def plot_simulation(self, days_to_avg=3, alpha=0.025):
+        infections, new_icu_intensity_at_day, lockdown_point = self._simulate()
+        infections *= 0.9
+        new_icu_intensity_at_day *= 0.9
+        icu_demand = self.los_filter.apply_filter(new_icu_intensity_at_day)
+        if self.icu:
+            new_adms = new_icu_intensity_at_day / self.icu_hospitalization_fraction
+        else:
+            new_adms = new_icu_intensity_at_day
+        fig, ax1 = plt.subplots()
+        ax1.set_xlim(165-lockdown_point, 230-lockdown_point)
+        ax1.set_xlabel('Days Since Lockdown')
+        ax1.set_ylabel('ICU + Acute Care Admissions')
+        days_since_lockdown = list(range(-lockdown_point, len(infections) - lockdown_point))
+        three_day_avg = [np.mean(new_adms[max(0, v-days_to_avg):(v+1)]) for v in range(len(new_adms))]
+        new_adm_line = ax1.plot(days_since_lockdown, three_day_avg, 'b--', label="{}-day Average New Admissions".format(days_to_avg))
+        upper = [scipy.stats.poisson.ppf(1-alpha, adm * days_to_avg) / days_to_avg for adm in three_day_avg]
+        lower = [scipy.stats.poisson.ppf(alpha, adm * days_to_avg) / days_to_avg for adm in three_day_avg]
+        adm_fill = ax1.fill_between(days_since_lockdown, lower, upper, alpha=0.3, facecolor='blue')
+        ax3 = ax1.twinx()
+        census_line = ax3.plot(days_since_lockdown, icu_demand, 'r-', label='Census')
+        census_fill = ax3.fill_between(days_since_lockdown, icu_demand - 1.96 * np.sqrt(icu_demand), icu_demand + 1.96 * np.sqrt(icu_demand), alpha=0.3, facecolor='red')
+        if self.icu:
+            ax3.set_ylabel('ICU Census')
+        else:
+            ax3.set_ylabel('ICU + Acute Care Census')
+        ax2 = ax1.twinx()
+        infection_line = ax2.plot(days_since_lockdown, infections, 'k-', label='New Infections')
+        infection_fill = ax2.fill_between(days_since_lockdown, infections - 1.96 * np.sqrt(infections),infections + 1.96 * np.sqrt(infections), alpha=0.3, facecolor='black')
+        ax2.spines['right'].set_position(('outward', 60))
+        ax2.set_ylabel('Infections')
+        ax1.axvline(0, linestyle='--', color='k')
+        lns = infection_line + new_adm_line + census_line
+        labs = [l.get_label() for l in lns]
+        ax2.legend(lns, labs, loc='lower right', framealpha=0.8)
+        fig.tight_layout()
+        return fig, ax1, ax2, ax3
 
     def _estimate_max_capacity_multiplier(self):
         _, new_icu_intensity_at_day, lockdown_point = self._simulate()
