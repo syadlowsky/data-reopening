@@ -17,3 +17,7 @@ Specifically, the forward simulation is in the `_simulate` method. This
 code also has the logic for creating the confidence intervals to deal with
 the statistical noise. `utils.py` contains some of the filters needed for
  running the simulation.
+
+### Sensitivity analysis
+The sensitivity analyses with running forward simulations under different
+growth rates is in `sensitivity_analysis.py`.
