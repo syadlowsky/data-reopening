@@ -39,7 +39,7 @@ def main():
             # The 0.25 avoids weird rounding issues at 0.5
             hosp_capacity = np.around(hospital_capacity.at[(county, 'UNSPECIFIED GENERAL ACUTE CARE'), 'BED_CAPACITY'] / 2 + 0.25)
             projection = HospBedDemandProjection(transmission_rate = Rt, icu=False)
-            hosp_thresholds=projection.estimate_runway_threshold(hosp_capacity, z_alpha = z_alpha_div_2, alpha=alpha / 2)
+            hosp_thresholds=projection.estimate_runway_threshold(hosp_capacity, alpha=alpha / 2)
             threshold_for_hosp = hosp_thresholds['hospital_admissions_threshold']
 
         if icu:
