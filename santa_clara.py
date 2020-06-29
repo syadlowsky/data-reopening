@@ -10,6 +10,7 @@ from hosp_bed_demand_projection import HospBedDemandProjection
 
 grc = GrowthRateConversion()
 Rt = grc.R0_ez(0.08)
+print(Rt)
 
 alpha = 0.05
 
