@@ -1,7 +1,6 @@
 import numpy as np
 import warnings
 import scipy.stats
-import matplotlib.pyplot as plt
 
 from utils import GrowthRateConversion, LoSFilter, HospitalizationFilter
 
@@ -89,6 +88,7 @@ class HospBedDemandProjection(object):
         return infections, icu_intensity, lockdown_point
 
     def plot_simulation(self, days_to_avg=3, alpha=0.025):
+        import matplotlib.pyplot as plt
         infections, new_icu_intensity_at_day, lockdown_point = self._simulate()
         infections *= 0.9
         new_icu_intensity_at_day *= 0.9

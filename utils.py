@@ -1,6 +1,5 @@
 from scipy.special import gammaln
 from numpy import log, exp, sqrt
-import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats
 
