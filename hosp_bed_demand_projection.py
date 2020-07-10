@@ -41,6 +41,8 @@ class HospBedDemandProjection(object):
             self.admission_probability = admission_probability
         self.icu_hospitalization_fraction = icu_hospitalization_fraction
 
+        self._simulation = self._simulate()
+
     def _set_los_filter_with_default(self, los_filter=None):
         if los_filter is None:
             if self.icu:
@@ -89,7 +91,7 @@ class HospBedDemandProjection(object):
 
     def plot_simulation(self, days_to_avg=3, alpha=0.025):
         import matplotlib.pyplot as plt
-        infections, new_icu_intensity_at_day, lockdown_point = self._simulate()
+        infections, new_icu_intensity_at_day, lockdown_point = self._simulation
         infections *= 0.9
         new_icu_intensity_at_day *= 0.9
         icu_demand = self.los_filter.apply_filter(new_icu_intensity_at_day)
@@ -127,7 +129,7 @@ class HospBedDemandProjection(object):
         return fig, ax1, ax2, ax3
 
     def _estimate_max_capacity_multiplier(self):
-        _, new_icu_intensity_at_day, lockdown_point = self._simulate()
+        _, new_icu_intensity_at_day, lockdown_point = self._simulation
         icu_demand = self.los_filter.apply_filter(new_icu_intensity_at_day)
         return np.max(icu_demand) / np.mean(new_icu_intensity_at_day[lockdown_point - 3:lockdown_point])
 
